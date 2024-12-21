@@ -1,0 +1,268 @@
+<!doctype html>
+<style>
+  /* Contenedor principal del video */
+  .video-container {
+    position: relative;
+    max-width: 100%;
+    margin: auto;
+    background: black;
+    cursor: pointer;
+  }
+
+  video {
+    width: 100%;
+    display: block;
+  }
+
+  /* Botón de play central */
+  .play-button-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    font-size: 30px;
+    padding: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-button-overlay.hidden {
+    display: none;
+  }
+
+  /* Fila de controles superior */
+  .controls-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 10px;
+    flex-wrap: wrap;
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
+
+  .controls-top.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .controls-top button {
+    background: none;
+    border: none;
+    color: white;
+    margin: 5px;
+    cursor: pointer;
+  }
+
+  /* Controles inferiores */
+  .controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    flex-wrap: wrap;
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .controls.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .controls button,
+  .controls input[type="range"] {
+    background: none;
+    border: none;
+    color: white;
+    margin: 5px;
+    cursor: pointer;
+  }
+
+  .controls input[type="range"] {
+    flex-grow: 1;
+    width: auto;
+    margin: 0 10px;
+  }
+
+  .time-remaining {
+    margin-left: 10px;
+    font-size: 14px;
+  }
+</style>
+
+<div class="video-container" id="video-container">
+  <button class="play-button-overlay" id="play-overlay">▶️</button>
+  <video id="video" src="https://streamtape.com/get_video?id=1RQa8BoBJqs0Ra&expires=1734763558&ip=F0uUKRWSKxSHDN&token=DmhcS4TvK2O-&dl=1"></video>
+  
+  <!-- Fila superior de controles -->
+  <div class="controls-top" id="controls-top">
+    <button id="fullscreen">⛶ Pantalla completa</button>
+    <button id="mute">🔇 Mute</button>
+    <button id="pip">↘️ Minimizar</button>
+  </div>
+  
+  <!-- Controles inferiores -->
+  <div class="controls" id="controls">
+    <button id="play">▶️</button>
+    <button id="pause" style="display: none;">⏸️</button>
+    <input type="range" id="progress" min="0" max="100" value="0" />
+    <span class="time-remaining" id="time-remaining">-:--</span>
+  </div>
+</div>
+
+<script>
+  const videoContainer = document.getElementById("video-container");
+  const video = document.getElementById("video");
+  const controls = document.getElementById("controls");
+  const controlsTop = document.getElementById("controls-top");
+  const playOverlay = document.getElementById("play-overlay");
+  const playBtn = document.getElementById("play");
+  const pauseBtn = document.getElementById("pause");
+  const progressSlider = document.getElementById("progress");
+  const fullscreenBtn = document.getElementById("fullscreen");
+  const pipBtn = document.getElementById("pip");
+  const muteBtn = document.getElementById("mute");
+  const timeRemaining = document.getElementById("time-remaining");
+
+  let controlsTimeout;
+  let controlsVisible = false;
+
+  function showControls() {
+    controls.classList.add("visible");
+    controlsTop.classList.add("visible");
+    controlsVisible = true;
+    resetControlsTimeout();
+  }
+
+  function hideControls() {
+    controls.classList.remove("visible");
+    controlsTop.classList.remove("visible");
+    controlsVisible = false;
+  }
+
+  function toggleControls() {
+    if (controlsVisible) {
+      hideControls();
+    } else {
+      showControls();
+    }
+  }
+
+  function resetControlsTimeout() {
+    clearTimeout(controlsTimeout);
+    if (controlsVisible) {
+      controlsTimeout = setTimeout(() => {
+        if (!video.paused) {
+          hideControls();
+        }
+      }, 3000);
+    }
+  }
+
+  videoContainer.addEventListener("click", (event) => {
+    if (event.target === video || event.target === videoContainer) {
+      toggleControls();
+    }
+  });
+
+  playOverlay.addEventListener("click", () => {
+    video.play();
+    syncPlayState(true);
+  });
+
+  playBtn.addEventListener("click", () => {
+    video.play();
+    syncPlayState(true);
+  });
+
+  pauseBtn.addEventListener("click", () => {
+    video.pause();
+    syncPlayState(false);
+  });
+
+  function syncPlayState(isPlaying) {
+    if (isPlaying) {
+      playOverlay.classList.add("hidden");
+      playBtn.style.display = "none";
+      pauseBtn.style.display = "inline";
+    } else {
+      playOverlay.classList.remove("hidden");
+      playBtn.style.display = "inline";
+      pauseBtn.style.display = "none";
+    }
+    showControls(); // Muestra los controles al cambiar el estado
+  }
+
+  video.addEventListener("play", () => {
+    syncPlayState(true); // Actualiza el estado al reproducir
+    showControls();
+  });
+
+  video.addEventListener("pause", () => {
+    syncPlayState(false); // Actualiza el estado al pausar
+    clearTimeout(controlsTimeout);
+  });
+
+  video.addEventListener("timeupdate", () => {
+    const progress = (video.currentTime / video.duration) * 100;
+    progressSlider.value = progress;
+
+    const timeLeft = video.duration - video.currentTime;
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = Math.floor(timeLeft % 60).toString().padStart(2, "0");
+    timeRemaining.textContent = `-${minutes}:${seconds}`;
+  });
+
+  progressSlider.addEventListener("input", () => {
+    const seekTime = (progressSlider.value / 100) * video.duration;
+    video.currentTime = seekTime;
+  });
+
+  fullscreenBtn.addEventListener("click", () => {
+    if (video.requestFullscreen) {
+      video.requestFullscreen();
+    } else if (video.webkitRequestFullscreen) {
+      video.webkitRequestFullscreen();
+    } else if (video.msRequestFullscreen) {
+      video.msRequestFullscreen();
+    }
+  });
+
+  pipBtn.addEventListener("click", async () => {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+    } else if (video.requestPictureInPicture) {
+      await video.requestPictureInPicture();
+    }
+  });
+
+  muteBtn.addEventListener("click", () => {
+    video.muted = !video.muted;
+    muteBtn.textContent = video.muted ? "🔈 Unmute" : "🔇 Mute";
+  });
+</script></!doctype>
